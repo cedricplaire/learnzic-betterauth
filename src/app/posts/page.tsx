@@ -1,13 +1,25 @@
 import React from "react";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import ReturnButton from "@/components/return-button";
 import Link from "next/link";
+import { fetchPostPagination, fetchPostsPage } from "@/data/posts.data";
+import Pagination from "@/components/pagination";
+import { EditPostButton, PlaceHolderEditPostButton } from "@/components/edit-post-button";
+import { ReadPostButton } from "@/components/read-post-button";
 
-export default async function Page() {
+export default async function Page(props: {
+  searchParams?: Promise<{
+    query?: string;
+    page?: string;
+  }>;
+}) {
+  const searchParams = await props.searchParams;
+  const query = searchParams?.query || "";
+  const currentPage = Number(searchParams?.page) || 1;
+  const totalPages = await fetchPostsPage(query);
   const headersList = await headers();
   const session = await auth.api.getSession({
     headers: headersList,
@@ -23,13 +35,13 @@ export default async function Page() {
       },
     },
   });
-  const userPosts = await prisma.post.findMany({
-    where: {
-      userId: session.user.id,
-    },
-  });
+  const userPosts = await fetchPostPagination(query, currentPage);
+  if (!userPosts) {
+    redirect("/");
+  }
+
   return (
-    <div className="px-8 py-16 container mx-auto max-w-sceen-lg space-y-8">
+    <div className="px-6 py-12 max-w-sceen-lg space-y-8">
       <div className="space-y-4">
         <ReturnButton href="/profile" label="Profile" />
         <h1 className="text-3-xl font-bold">All Your Posts</h1>
@@ -55,23 +67,30 @@ export default async function Page() {
         <tbody>
           {userPosts.map((post) => (
             <tr key={post.id} className="border-b text-sm text-left">
-              <td className="p-2">{post.id}</td>
+              <td className="p-2">{`${post.id.slice(0, 6)} ...`}</td>
               <td className="p-2">{post.createdAt.toLocaleDateString()}</td>
               <td className="p-2">{post.published ? "True" : "False"}</td>
               <td className="p-2">{post.title}</td>
-              <td className="p-2">{post.subject}</td>
-              <td className="p-2">{`${post.content.slice(0, 15)} ...`}</td>
-              <td className="p-2">
-                {
-                  <Button size="sm" disabled={!FULL_POST_ACCESS.success}>
-                    <Link href={`/posts/${post.id}/edit`}>Edit</Link>
-                  </Button>
+              <td className="p-2">{`${post.subject?.slice(0, 25)} ...`}</td>
+              <td className="p-2">{`${post.content.slice(0, 60)} ...`}</td>
+
+              <td className="p-2 grid grid-cols-2">
+                <span className="p-2 grid-cols-1">
+                  <ReadPostButton postId={post.id} />
+                </span>
+                <span className="grid-cols-1 p-2">
+                {FULL_POST_ACCESS ? <EditPostButton postId={post.id} /> :
+                  <PlaceHolderEditPostButton />
                 }
+                </span>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+      <div className="mt-5 flex w-full justify-center">
+        <Pagination totalPages={totalPages} />
+      </div>
     </div>
   );
 }

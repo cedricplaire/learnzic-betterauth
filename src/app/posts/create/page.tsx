@@ -15,10 +15,12 @@ export default async function Page() {
   return (
     <div className="px-8 py-16 container mx-auto max-w-5xl space-y-8">
       <div className="space-y-4">
-        <ReturnButton href="/" label="Home" />
+        <ReturnButton href="/posts" label="Posts List" />
         <h1 className="text-3-xl font-bold">Create New Post</h1>
       </div>
-      <CreatePostForm userId={authorId} />
+      <div className="px-2 py-4 mx-auto space-y-6">
+        <CreatePostForm userId={authorId} />
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { signOut } from "@/lib/auth-client";
 import { Button } from "./ui/button"
 import { useRouter } from "next/navigation"
 import { useState } from "react";
+import { ArrowLeftToLine, ArrowRightFromLine } from "lucide-react";
 
 export default function SignOutButton() {
     const [isPending, setIsPending] = useState(false);
@@ -31,12 +32,14 @@ export default function SignOutButton() {
 
     return (
         <Button 
-            size="sm" 
+            size="sm"
+            className="hover:cursor-pointer items-center pb-0.5"
             onClick={handleClick}
             variant="destructive"
             disabled={isPending}
         >
             Sign Out
+            <ArrowRightFromLine />
         </Button>
     )
 

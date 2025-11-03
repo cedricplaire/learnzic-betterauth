@@ -3,22 +3,22 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { TrashIcon } from 'lucide-react';
-import { DeleteUserButtonAction } from '@/actions/delete-user-action';
+import { DeletePostButtonAction } from '@/actions/delete-post-action';
 import { toast } from 'sonner';
 
-interface DeleteUserButtonProps {
-    userId: string
+interface DeletePostButtonProps {
+    postId: string
 }
 
-export const DeleteUserButton = ({userId}: DeleteUserButtonProps) => {
+export const DeletePostButton = ({postId}: DeletePostButtonProps) => {
     const [isPending, setIsPending] = useState(false);
     async function handleClick() {
         setIsPending(true)
-        const { error } = await DeleteUserButtonAction({userId});
+        const { error } = await DeletePostButtonAction({postId});
         if (error) {
             toast.error(error)
         } else {
-            toast.success("User Deleted Successfully")
+            toast.success("Post Deleted Successfully")
         }
         setIsPending(false);
     }
@@ -27,27 +27,27 @@ export const DeleteUserButton = ({userId}: DeleteUserButtonProps) => {
     <Button
         size="icon"
         variant={"destructive"}
-        className='size-7 rounded-md'
+        className='size-8 rounded-md hover:cursor-pointer hover:border-2 hover:border-gray-600'
         disabled={isPending}
         onClick={handleClick}
     >
         <span className="sr-only">
-            Delete User
+            Delete Post
         </span>
         <TrashIcon />
     </Button>
   )
 }
 
-export const PlaceHolderDeleteUserButton = () => {
+export const PlaceHolderDeletePostButton = () => {
     return (
       <Button
         size="icon"
         variant={"destructive"}
-        className="size-7 rounded-md"
+        className="size-8 rounded-md hover:cursor-pointer hover:border-2 hover:border-gray-600"
         disabled
       >
-        <span className="sr-only">Delete User</span>
+        <span className="sr-only">Delete Post</span>
         <TrashIcon />
       </Button>
     );

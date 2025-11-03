@@ -1,22 +1,21 @@
 "use server"
 
-import { z } from "zod"
+import { z }  from "zod"
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-const PostFormSchema = z.object({
+const FormSchema = z.object({
   id: z.string(),
   userId: z.string(),
-  title: z.string(),
-  subject: z.string(),
-  content: z.string(),
-  published: z.boolean(),
+  title: z.string().min(6).max(55),
+  subject: z.string().min(6).max(55),
+  content: z.string().min(6),
+  published: z.stringbool(),
 });
 
 export type State = {
   errors?: {
-    userId?: string[];
     title?: string[];
     subject?: string[];
     content?: string[];
@@ -25,16 +24,88 @@ export type State = {
   message?: string | null;
 };
 
-const CreateValidPost = PostFormSchema.omit({ id: true });
-const UpdateValidPost = PostFormSchema.omit({ id: true });
+const CreateValidPost = FormSchema.omit({ id: true });
+const UpdateValidPost = FormSchema.omit({ id: true });
 
-export async function CreatePost(prevState: State, formData: FormData) {
-  
+export async function createNewPost(formData: FormData) {
+  let publish = false;
+  if (formData.get("published") === "on") {
+    publish = true;
+  } else {
+    publish = false;
+  }
+  const title = String(formData.get("title"));
+  const subject = String(formData.get("subject"));
+  const content = String(formData.get("content"));
+  const userId = String(formData.get("userId"));
+  if (!title || !subject || !content || !userId) {
+    return { error: "some field are needed !"}
+  }
+  try {
+    await prisma.post.create({
+      data: {
+        subject: subject,
+        title: title,
+        content: content,
+        userId: userId,
+        published: publish,
+      },
+    });
+    revalidatePath("/posts/create");
+    return { error: null };
+  } catch (error) {
+    console.error(error);
+    return {
+      message: "Database Error: Failed to create Post.",
+    };
+  } 
+}
+
+export async function updateNewPost(formData: FormData) {
+  let publish = false;
+  if (formData.get("published") === "on") {
+    publish = true;
+  } else {
+    publish = false;
+  }
+  const id = String(formData.get("id"));
+  const title = String(formData.get("title"));
+  const subject = String(formData.get("subject"));
+  const content = String(formData.get("content"));
+  if (!title || !subject || !content) {
+    return { error: "some field are needed !" };
+  }
+  try {
+    await prisma.post.update({
+      where: {
+        id: id,
+      },
+      data: {
+        subject: subject,
+        title: title,
+        content: content,
+        published: publish,
+      },
+    });
+    revalidatePath(`/posts/${id}/edit`);
+    return { error: null };
+  } catch (error) {
+    console.error(error);
+    return {
+      message: "Database Error: Failed to update Post.",
+    };
+  }
+}
+
+export async function createPost(prevState: State, formData: FormData) {
+  let pb = formData.get("published") as unknown;
+  if (!pb || pb === null) { pb = "false";}
   const validatedFields = CreateValidPost.safeParse({
     userId: formData.get("userId"),
     title: formData.get("title"),
     subject: formData.get("subject"),
     content: formData.get("content"),
+    published: pb,
   });
 
   if (!validatedFields.success) {
@@ -45,7 +116,7 @@ export async function CreatePost(prevState: State, formData: FormData) {
     };
   }
   // Prepare data for insertion into the database
-  const {userId, title, subject, content } = validatedFields.data;
+  const {userId, title, subject, content, published } = validatedFields.data;
 
   try {
     await prisma.post.create({
@@ -53,14 +124,14 @@ export async function CreatePost(prevState: State, formData: FormData) {
         subject: subject,
         title: title,
         content: content,
+        published: published,
         userId: userId,
       },
     });
-    console.log("tada ...");
   } catch (error) {
     console.error(error);
     return {
-      message: "Database Error: Failed to Create Post.",
+      message: "Database Error: Failed to create Post.",
     };
   }
 
@@ -69,12 +140,17 @@ export async function CreatePost(prevState: State, formData: FormData) {
 
 }
 
-export async function UpdatePost(id: string, prevState: State, formData: FormData) {
+export async function updatePost(id: string, prevState: State, formData: FormData) {
+  let pb = formData.get("published") as unknown;
+  if (!pb || pb === null) {
+    pb = "false";
+  }
   const validatedFields = UpdateValidPost.safeParse({
     title: formData.get("title"),
     subject: formData.get("subject"),
     content: formData.get("content"),
-    published: formData.get("published"),
+    userId: formData.get("userId"),
+    published: pb,
   });
 
   if (!validatedFields.success) {
